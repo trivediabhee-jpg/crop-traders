@@ -8,6 +8,7 @@ import priceRoutes from "./routes/prices.js";
 import userRoutes from "./routes/Userroute.js";
 import activeCropRoutes from "./routes/croproute.js";
 import ownerInventoryRoutes from "./routes/ownerInventoryRoutes.js"
+import buyRequestRoutes from "./routes/buyRequestRoutes.js"
 
 dotenv.config({ path: "./config.env" });
 
@@ -34,6 +35,7 @@ app.use("/api/prices", priceRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/active-crops", activeCropRoutes);
 app.use("/api/owner/inventory",ownerInventoryRoutes);
+app.use("/api/buy-request",buyRequestRoutes);
 
 
 // ✅ Start server
