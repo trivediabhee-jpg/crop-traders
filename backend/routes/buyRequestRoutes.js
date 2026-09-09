@@ -17,4 +17,4 @@ router.get("/", getBuyRequests);
 // Update request status
 router.put("/:id/status", updateBuyRequestStatus);
 
-export default router;
+export default router;    
