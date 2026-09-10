@@ -1,9 +1,14 @@
 import ActiveCrop from "../models/activecrop-model.js";
 import { sendWhatsAppMessage } from "../services/whatsappService.js";
 
-// ➕ Create Active Crop
+
+// =====================================================
+// 👨‍🌾 CREATE ACTIVE CROP - FARMER
+// =====================================================
+
 export const createActiveCrop = async (req, res) => {
   try {
+
     const {
       cropName,
       quantity,
@@ -13,23 +18,28 @@ export const createActiveCrop = async (req, res) => {
       notes,
     } = req.body;
 
-    // Crop Save
+
+    // Create crop request
     const crop = await ActiveCrop.create({
+
       farmer: req.user._id,
+
       cropName,
       quantity,
       expectedPrice,
       harvestDate,
       storageDuration,
       notes,
+
     });
 
-    // WhatsApp Message
+
+    // WhatsApp message
     const message = `🌾 New Active Crop Request
 
-👤 Farmer: ${req.user.fullname}
-📞 Phone: ${req.user.phone}
-📍 Village: ${req.user.village}
+👤 Farmer: ${req.user.fullname || "Unknown"}
+📞 Phone: ${req.user.phone || "N/A"}
+📍 Village: ${req.user.village || "N/A"}
 
 🌱 Crop: ${crop.cropName}
 📦 Quantity: ${crop.quantity}
@@ -41,38 +51,145 @@ export const createActiveCrop = async (req, res) => {
 ${crop.notes || "No Notes"}
 `;
 
-    // Send WhatsApp Message
-    await sendWhatsAppMessage(message);
+
+    // Send WhatsApp notification
+    try {
+      await sendWhatsAppMessage(message);
+    } catch (whatsappError) {
+      console.log(
+        "WhatsApp Error:",
+        whatsappError.message
+      );
+    }
+
 
     res.status(201).json({
+
       success: true,
-      message: "Crop request created",
+
+      message: "Crop request created successfully",
+
       crop,
+
     });
 
+
   } catch (error) {
-    console.log("Create Crop Error:", error);
+
+    console.log(
+      "Create Crop Error:",
+      error
+    );
+
     res.status(500).json({
+
       success: false,
+
       message: error.message,
+
     });
+
   }
 };
 
-// 📄 Get My Active Crops
+
+
+// =====================================================
+// 👨‍🌾 GET MY ACTIVE CROPS - FARMER
+// =====================================================
+
 export const getMyActiveCrops = async (req, res) => {
+
   try {
+
     const crops = await ActiveCrop.find({
+
       farmer: req.user._id,
-    }).sort({
-      createdAt: -1,
+
+    })
+      .populate(
+        "farmer",
+        "fullname email phone village"
+      )
+      .sort({
+        createdAt: -1,
+      });
+
+
+    res.status(200).json({
+
+      success: true,
+
+      crops,
+
     });
 
-    res.json(crops);
 
   } catch (error) {
+
+    console.log(
+      "Get My Crops Error:",
+      error
+    );
+
     res.status(500).json({
+
+      success: false,
+
       message: error.message,
+
     });
+
   }
-};                      
+
+};
+
+
+
+// =====================================================
+// 👑 GET ALL ACTIVE CROPS - OWNER
+// =====================================================
+
+export const getAllActiveCrops = async (req, res) => {
+
+  try {
+
+    const crops = await ActiveCrop.find()
+
+      .populate(
+        "farmer",
+        "fullname email phone village"
+      )
+
+      .sort({
+        createdAt: -1,
+      });
+
+
+    res.status(200).json({
+
+      success: true,
+
+      crops,
+
+    });
+
+
+  } catch (error) {
+
+    console.log(
+      "Get All Active Crops Error:",
+      error
+    );
+
+    res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
+
+};                  
