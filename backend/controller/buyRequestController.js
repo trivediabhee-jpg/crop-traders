@@ -1,8 +1,8 @@
 import BuyRequest from "../models/Buyreq-model.js";
 
-// ===============================
+// ==========================================
 // CREATE BUY REQUEST
-// ===============================
+// ==========================================
 export const createBuyRequest = async (req, res) => {
   try {
     const {
@@ -18,6 +18,7 @@ export const createBuyRequest = async (req, res) => {
       notes,
     } = req.body;
 
+    // Create new buy request
     const newRequest = new BuyRequest({
       company,
       person,
@@ -51,12 +52,14 @@ export const createBuyRequest = async (req, res) => {
 };
 
 
-// ===============================
+// ==========================================
 // GET ALL BUY REQUESTS
-// ===============================
+// OWNER DASHBOARD
+// ==========================================
 export const getBuyRequests = async (req, res) => {
   try {
-    const requests = await BuyRequest.find().sort({ createdAt: -1 });
+    const requests = await BuyRequest.find()
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -74,19 +77,34 @@ export const getBuyRequests = async (req, res) => {
 };
 
 
-// ===============================
+// ==========================================
 // UPDATE BUY REQUEST STATUS
-// ===============================
+// OWNER DASHBOARD
+// ==========================================
 export const updateBuyRequestStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
+    // Check status
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required",
+      });
+    }
+
     const updatedRequest = await BuyRequest.findByIdAndUpdate(
       req.params.id,
-      { status },
-      { new: true }
+      {
+        status,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
     );
 
+    // Request not found
     if (!updatedRequest) {
       return res.status(404).json({
         success: false,
@@ -96,11 +114,11 @@ export const updateBuyRequestStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Buy request status updated",
+      message: "Buy request status updated successfully",
       request: updatedRequest,
     });
   } catch (error) {
-    console.error("Update Buy Request Error:", error);
+    console.error("Update Buy Request Status Error:", error);
 
     res.status(500).json({
       success: false,
