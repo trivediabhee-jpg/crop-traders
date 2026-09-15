@@ -4,9 +4,19 @@ import { useAuth } from "../context/Authcontext";
 const OwnerDashboard = () => {
   const { user } = useAuth();
 
+  // ==========================================
+  // STATES
+  // ==========================================
+
   const [crops, setCrops] = useState([]);
+  const [farmerRequests, setFarmerRequests] = useState([]);
+  const [buyRequests, setBuyRequests] = useState([]);
+
   const [showForm, setShowForm] = useState(false);
+
   const [loading, setLoading] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
+
   const [message, setMessage] = useState("");
 
   const [form, setForm] = useState({
@@ -35,19 +45,74 @@ const OwnerDashboard = () => {
       if (res.ok) {
         setCrops(data.crops || []);
       } else {
-        console.log(data.message);
+        console.log("Inventory Error:", data.message);
       }
-
     } catch (error) {
       console.error("Inventory Error:", error);
     }
   };
 
+  // ==========================================
+  // FETCH FARMER + BUY REQUESTS
+  // ==========================================
+
+  const fetchRequests = async () => {
+    try {
+      setRequestLoading(true);
+
+      const [farmerRes, buyRes] = await Promise.all([
+        fetch(
+          "http://localhost:4000/api/active-crops/owner/all",
+          {
+            credentials: "include",
+          }
+        ),
+
+        fetch(
+          "http://localhost:4000/api/buy-requests",
+          {
+            credentials: "include",
+          }
+        ),
+      ]);
+
+      const farmerData = await farmerRes.json();
+      const buyData = await buyRes.json();
+
+      // Farmer Requests
+      if (farmerRes.ok) {
+        setFarmerRequests(farmerData.crops || []);
+      } else {
+        console.error(
+          "Farmer Requests Error:",
+          farmerData.message
+        );
+      }
+
+      // Buy Requests
+      if (buyRes.ok) {
+        setBuyRequests(buyData.requests || []);
+      } else {
+        console.error(
+          "Buy Requests Error:",
+          buyData.message
+        );
+      }
+    } catch (error) {
+      console.error("Fetch Requests Error:", error);
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+  // ==========================================
+  // INITIAL FETCH
+  // ==========================================
 
   useEffect(() => {
     fetchInventory();
+    fetchRequests();
   }, []);
-
 
   // ==========================================
   // HANDLE INPUT
@@ -59,7 +124,6 @@ const OwnerDashboard = () => {
       [e.target.name]: e.target.value,
     });
   };
-
 
   // ==========================================
   // ADD CROP
@@ -96,7 +160,6 @@ const OwnerDashboard = () => {
       const data = await res.json();
 
       if (res.ok) {
-
         setMessage("✅ Crop added successfully!");
 
         setForm({
@@ -110,36 +173,27 @@ const OwnerDashboard = () => {
         setShowForm(false);
 
         fetchInventory();
-
       } else {
-
         setMessage(
           `❌ ${data.message || "Failed to add crop"}`
         );
       }
-
     } catch (error) {
-
       console.error("Add Crop Error:", error);
 
       setMessage(
         "⚠️ Server error. Please try again."
       );
-
     } finally {
-
       setLoading(false);
-
     }
   };
-
 
   // ==========================================
   // DELETE CROP
   // ==========================================
 
   const handleDelete = async (id) => {
-
     const confirmDelete = window.confirm(
       "Are you sure you want to remove this crop?"
     );
@@ -147,7 +201,6 @@ const OwnerDashboard = () => {
     if (!confirmDelete) return;
 
     try {
-
       const res = await fetch(
         `http://localhost:4000/api/owner/inventory/${id}`,
         {
@@ -159,57 +212,111 @@ const OwnerDashboard = () => {
       const data = await res.json();
 
       if (res.ok) {
-
-        setMessage("✅ Crop removed successfully!");
+        setMessage(
+          "✅ Crop removed successfully!"
+        );
 
         fetchInventory();
-
       } else {
-
         setMessage(
           `❌ ${data.message || "Delete failed"}`
         );
       }
-
     } catch (error) {
-
       console.error("Delete Error:", error);
 
-      setMessage(
-        "⚠️ Server error."
-      );
+      setMessage("⚠️ Server error.");
     }
   };
 
+  // ==========================================
+  // UPDATE BUY REQUEST STATUS
+  // ==========================================
+
+  const updateBuyRequestStatus = async (
+    id,
+    status
+  ) => {
+    try {
+      setRequestLoading(true);
+
+      const res = await fetch(
+        `http://localhost:4000/api/buy-requests/${id}/status`,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          credentials: "include",
+
+          body: JSON.stringify({
+            status,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage(
+          status === "Accepted"
+            ? "✅ Buy request accepted successfully!"
+            : "❌ Buy request rejected."
+        );
+
+        await fetchRequests();
+      } else {
+        setMessage(
+          `❌ ${
+            data.message ||
+            "Failed to update request"
+          }`
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Update Buy Request Error:",
+        error
+      );
+
+      setMessage(
+        "⚠️ Server error while updating buy request."
+      );
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+  // ==========================================
+  // RETURN
+  // ==========================================
 
   return (
     <div className="min-h-screen bg-gray-100 pt-24 px-4 sm:px-6 lg:px-8">
 
-      {/* ==========================================
-          HEADER
-      ========================================== */}
-
       <div className="max-w-7xl mx-auto">
+
+        {/* ==========================================
+            HEADER
+        ========================================== */}
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
 
           <div>
 
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
-
               Welcome back,{" "}
               {user?.fullname || "Owner"} 👋
-
             </h1>
 
             <p className="text-gray-500 mt-2">
-
-              Manage your crops and inventory from here.
-
+              Manage your crops, farmer requests,
+              buy requests and inventory from here.
             </p>
 
           </div>
-
 
           {/* ADD CROP BUTTON */}
 
@@ -217,22 +324,16 @@ const OwnerDashboard = () => {
             onClick={() => setShowForm(!showForm)}
             className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-xl font-semibold shadow-md transition"
           >
-
-            {showForm
-              ? "✕ Close"
-              : "＋ Add Crop"}
-
+            {showForm ? "✕ Close" : "＋ Add Crop"}
           </button>
 
         </div>
-
 
         {/* ==========================================
             MESSAGE
         ========================================== */}
 
         {message && (
-
           <div className="mb-6 bg-white rounded-xl shadow p-4">
 
             <p className="text-center font-medium">
@@ -240,15 +341,15 @@ const OwnerDashboard = () => {
             </p>
 
           </div>
-
         )}
-
 
         {/* ==========================================
             STATS
         ========================================== */}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+
+          {/* FARMER REQUESTS */}
 
           <div className="bg-white rounded-2xl p-6 shadow">
 
@@ -257,15 +358,16 @@ const OwnerDashboard = () => {
             </p>
 
             <h2 className="text-3xl font-bold mt-2">
-              0
+              {farmerRequests.length}
             </h2>
 
             <p className="text-sm text-gray-400 mt-2">
-              New requests
+              Active farmer requests
             </p>
 
           </div>
 
+          {/* AVAILABLE CROPS */}
 
           <div className="bg-white rounded-2xl p-6 shadow">
 
@@ -274,9 +376,11 @@ const OwnerDashboard = () => {
             </p>
 
             <h2 className="text-3xl font-bold mt-2">
-              {crops.filter(
-                (crop) => crop.available
-              ).length}
+              {
+                crops.filter(
+                  (crop) => crop.available
+                ).length
+              }
             </h2>
 
             <p className="text-sm text-gray-400 mt-2">
@@ -285,6 +389,7 @@ const OwnerDashboard = () => {
 
           </div>
 
+          {/* BUY REQUESTS */}
 
           <div className="bg-white rounded-2xl p-6 shadow">
 
@@ -293,15 +398,16 @@ const OwnerDashboard = () => {
             </p>
 
             <h2 className="text-3xl font-bold mt-2">
-              0
+              {buyRequests.length}
             </h2>
 
             <p className="text-sm text-gray-400 mt-2">
-              Pending requests
+              Client buy requests
             </p>
 
           </div>
 
+          {/* TOTAL INVENTORY */}
 
           <div className="bg-white rounded-2xl p-6 shadow">
 
@@ -321,21 +427,16 @@ const OwnerDashboard = () => {
 
         </div>
 
-
         {/* ==========================================
             ADD CROP FORM
         ========================================== */}
 
         {showForm && (
-
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
 
             <h2 className="text-2xl font-bold text-gray-800 mb-6">
-
               Add Crop to Inventory 🌾
-
             </h2>
-
 
             <form
               onSubmit={handleSubmit}
@@ -362,7 +463,6 @@ const OwnerDashboard = () => {
 
               </div>
 
-
               {/* Quantity */}
 
               <div>
@@ -383,7 +483,6 @@ const OwnerDashboard = () => {
                 />
 
               </div>
-
 
               {/* Unit */}
 
@@ -416,7 +515,6 @@ const OwnerDashboard = () => {
 
               </div>
 
-
               {/* Price */}
 
               <div>
@@ -438,7 +536,6 @@ const OwnerDashboard = () => {
 
               </div>
 
-
               {/* Description */}
 
               <div className="md:col-span-2">
@@ -458,7 +555,6 @@ const OwnerDashboard = () => {
 
               </div>
 
-
               {/* Submit */}
 
               <div className="md:col-span-2 flex justify-end">
@@ -472,11 +568,9 @@ const OwnerDashboard = () => {
                       : "bg-green-600 hover:bg-green-700"
                   }`}
                 >
-
                   {loading
                     ? "Adding..."
                     : "Add to Inventory"}
-
                 </button>
 
               </div>
@@ -484,9 +578,458 @@ const OwnerDashboard = () => {
             </form>
 
           </div>
-
         )}
 
+        {/* ==========================================
+            FARMER REQUESTS
+        ========================================== */}
+
+        <div className="mb-10">
+
+          <div className="mb-5">
+
+            <h2 className="text-2xl font-bold text-gray-800">
+              👨‍🌾 Farmer Crop Requests
+            </h2>
+
+            <p className="text-gray-500 mt-1">
+              Active crop requests submitted by farmers.
+            </p>
+
+          </div>
+
+          {requestLoading ? (
+
+            <div className="bg-white rounded-2xl shadow p-8 text-center">
+
+              <p className="text-gray-500">
+                Loading farmer requests...
+              </p>
+
+            </div>
+
+          ) : farmerRequests.length === 0 ? (
+
+            <div className="bg-white rounded-2xl shadow p-8 text-center">
+
+              <div className="text-4xl mb-3">
+                👨‍🌾
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-700">
+                No farmer requests
+              </h3>
+
+              <p className="text-gray-500 mt-2">
+                New farmer crop requests will appear here.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              {farmerRequests.map((request) => (
+
+                <div
+                  key={request._id}
+                  className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition"
+                >
+
+                  {/* HEADER */}
+
+                  <div className="flex justify-between items-start">
+
+                    <div>
+
+                      <h3 className="text-xl font-bold text-gray-800 capitalize">
+                        🌾 {request.cropName}
+                      </h3>
+
+                      <p className="text-gray-500 text-sm mt-1">
+                        Farmer Request
+                      </p>
+
+                    </div>
+
+                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                      Pending
+                    </span>
+
+                  </div>
+
+                  {/* DETAILS */}
+
+                  <div className="mt-6 space-y-3">
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Farmer
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.farmer?.fullname || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Phone
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.farmer?.phone || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Village
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.farmer?.village || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-500">
+                        Quantity
+                      </span>
+
+                      <span className="font-semibold">
+                        {request.quantity}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-500">
+                        Expected Price
+                      </span>
+
+                      <span className="font-semibold text-green-700">
+                        ₹{request.expectedPrice}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Harvest Date
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.harvestDate
+                          ? new Date(
+                              request.harvestDate
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-500">
+                        Storage
+                      </span>
+
+                      <span className="font-semibold">
+                        {request.storageDuration || "N/A"} Days
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                  {/* NOTES */}
+
+                  {request.notes && (
+
+                    <div className="mt-5 border-t pt-4">
+
+                      <p className="text-sm text-gray-500">
+
+                        <span className="font-semibold text-gray-700">
+                          Notes:
+                        </span>{" "}
+
+                        {request.notes}
+
+                      </p>
+
+                    </div>
+
+                  )}
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
+
+        {/* ==========================================
+            BUY REQUESTS
+        ========================================== */}
+
+        <div className="mb-10">
+
+          <div className="mb-5">
+
+            <h2 className="text-2xl font-bold text-gray-800">
+              🛒 Buy Requests
+            </h2>
+
+            <p className="text-gray-500 mt-1">
+              Crop buying requests submitted by clients.
+            </p>
+
+          </div>
+
+          {requestLoading ? (
+
+            <div className="bg-white rounded-2xl shadow p-8 text-center">
+
+              <p className="text-gray-500">
+                Loading buy requests...
+              </p>
+
+            </div>
+
+          ) : buyRequests.length === 0 ? (
+
+            <div className="bg-white rounded-2xl shadow p-8 text-center">
+
+              <div className="text-4xl mb-3">
+                🛒
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-700">
+                No buy requests
+              </h3>
+
+              <p className="text-gray-500 mt-2">
+                New client buy requests will appear here.
+              </p>
+
+            </div>
+
+          ) : (
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              {buyRequests.map((request) => (
+
+                <div
+                  key={request._id}
+                  className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition"
+                >
+
+                  {/* HEADER */}
+
+                  <div className="flex justify-between items-start gap-3">
+
+                    <div>
+
+                      <h3 className="text-xl font-bold text-gray-800">
+                        🛒 {request.crop}
+                      </h3>
+
+                      <p className="text-gray-500 text-sm mt-1">
+                        {request.company || "Client"}
+                      </p>
+
+                    </div>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                        request.status === "Accepted"
+                          ? "bg-green-100 text-green-700"
+                          : request.status === "Rejected"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {request.status || "Pending"}
+                    </span>
+
+                  </div>
+
+                  {/* DETAILS */}
+
+                  <div className="mt-6 space-y-3">
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Person
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.person || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Email
+                      </span>
+
+                      <span className="font-semibold text-right break-all">
+                        {request.email || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Phone
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.phone || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-500">
+                        Quantity
+                      </span>
+
+                      <span className="font-semibold">
+                        {request.quantity}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between">
+
+                      <span className="text-gray-500">
+                        Offered Price
+                      </span>
+
+                      <span className="font-semibold text-green-700">
+                        ₹{request.price}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Location
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.location || "N/A"}
+                      </span>
+
+                    </div>
+
+                    <div className="flex justify-between gap-3">
+
+                      <span className="text-gray-500">
+                        Required Date
+                      </span>
+
+                      <span className="font-semibold text-right">
+                        {request.date
+                          ? new Date(
+                              request.date
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                  {/* NOTES */}
+
+                  {request.notes && (
+
+                    <div className="mt-5 border-t pt-4">
+
+                      <p className="text-sm text-gray-500">
+
+                        <span className="font-semibold text-gray-700">
+                          Notes:
+                        </span>{" "}
+
+                        {request.notes}
+
+                      </p>
+
+                    </div>
+
+                  )}
+
+                  {/* ACCEPT / REJECT */}
+
+                  {(!request.status ||
+                    request.status === "Pending") && (
+
+                    <div className="flex gap-3 mt-6">
+
+                      <button
+                        onClick={() =>
+                          updateBuyRequestStatus(
+                            request._id,
+                            "Accepted"
+                          )
+                        }
+                        disabled={requestLoading}
+                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 rounded-lg font-semibold transition"
+                      >
+                        ✓ Accept
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateBuyRequestStatus(
+                            request._id,
+                            "Rejected"
+                          )
+                        }
+                        disabled={requestLoading}
+                        className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white py-2 rounded-lg font-semibold transition"
+                      >
+                        ✕ Reject
+                      </button>
+
+                    </div>
+
+                  )}
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
 
         {/* ==========================================
             INVENTORY
@@ -509,7 +1052,6 @@ const OwnerDashboard = () => {
             </div>
 
           </div>
-
 
           {crops.length === 0 ? (
 
@@ -547,9 +1089,9 @@ const OwnerDashboard = () => {
                   className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition"
                 >
 
-                  {/* Crop Header */}
+                  {/* CROP HEADER */}
 
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start gap-3">
 
                     <div>
 
@@ -563,7 +1105,6 @@ const OwnerDashboard = () => {
 
                     </div>
 
-
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         crop.available
@@ -571,17 +1112,14 @@ const OwnerDashboard = () => {
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-
                       {crop.available
                         ? "Available"
                         : "Unavailable"}
-
                     </span>
 
                   </div>
 
-
-                  {/* Crop Information */}
+                  {/* CROP INFORMATION */}
 
                   <div className="mt-6 space-y-3">
 
@@ -597,7 +1135,6 @@ const OwnerDashboard = () => {
 
                     </div>
 
-
                     <div className="flex justify-between">
 
                       <span className="text-gray-500">
@@ -612,8 +1149,7 @@ const OwnerDashboard = () => {
 
                   </div>
 
-
-                  {/* Description */}
+                  {/* DESCRIPTION */}
 
                   {crop.description && (
 
@@ -623,13 +1159,12 @@ const OwnerDashboard = () => {
 
                   )}
 
-
-                  {/* Actions */}
+                  {/* ACTIONS */}
 
                   <div className="flex gap-3 mt-6">
 
                     <button
-                      className="flex-1 border border-green-600 text-green-600 hover:bg-green-50 py-2 rounded-lg font-semibold"
+                      className="flex-1 border border-green-600 text-green-600 hover:bg-green-50 py-2 rounded-lg font-semibold transition"
                     >
                       Edit
                     </button>
@@ -638,7 +1173,7 @@ const OwnerDashboard = () => {
                       onClick={() =>
                         handleDelete(crop._id)
                       }
-                      className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-semibold"
+                      className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-semibold transition"
                     >
                       Remove
                     </button>

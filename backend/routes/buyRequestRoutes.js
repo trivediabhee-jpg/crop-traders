@@ -6,15 +6,17 @@ import {
   updateBuyRequestStatus,
 } from "../controller/buyRequestController.js";
 
+import { protect, ownerOnly } from "../middleware/authmiddleware.js";
+
 const router = express.Router();
 
-// Create buy request
-router.post("/", createBuyRequest);
+// Client/Farmer buy request create karega
+router.post("/", protect, createBuyRequest);
 
-// Get all buy requests
-router.get("/", getBuyRequests);
+// Owner sabhi buy requests dekhega
+router.get("/", protect, ownerOnly, getBuyRequests);
 
-// Update request status
-router.put("/:id/status", updateBuyRequestStatus);
+// Owner request ka status update karega
+router.put("/:id/status", protect, ownerOnly, updateBuyRequestStatus);
 
-export default router;    
+export default router;
