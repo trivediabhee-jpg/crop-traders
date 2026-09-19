@@ -17,7 +17,7 @@ const FarmerProfile = () => {
       try {
 
         const profileRes = await axios.get(
-          "http://localhost:4000/api/users/profile",
+          "http://localhost:4000/api/user/profile",
           { withCredentials: true }
         );
 
