@@ -241,7 +241,7 @@ const OwnerDashboard = () => {
       setRequestLoading(true);
 
       const res = await fetch(
-        `http://localhost:4000/api/buy-request/${id}/status`,
+        `http://localhost:4000/api/buy-requests/${id}/status`,
         {
           method: "PUT",
 
