@@ -27,7 +27,7 @@ export default function ActiveCropForm() {
 
     try {
       const res = await axios.post(
-        "http://localhost:4000/api/active-crops/activecrop",
+        "http://localhost:4000/api/active-crops/activecrops",
         {
           cropName: form.cropName,
           quantity: form.quantity,
