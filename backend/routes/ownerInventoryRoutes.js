@@ -3,6 +3,7 @@ import express from "express";
 import {
   addInventoryCrop,
   getOwnerInventory,
+  getAvailableInventory,
   updateInventoryCrop,
   deleteInventoryCrop,
 } from "../controller/ownerInventoryController.js";
@@ -15,17 +16,55 @@ import {
 const router = express.Router();
 
 
-// Add crop
-router.post("/", protect, ownerOnly, addInventoryCrop);
 
-// Get owner inventory
-router.get("/", protect, ownerOnly, getOwnerInventory);
 
-// Update crop
-router.put("/:id", protect, ownerOnly, updateInventoryCrop);
 
-// Delete crop
-router.delete("/:id", protect, ownerOnly, deleteInventoryCrop);
+// ==========================================
+// OWNER - ADD CROP
+// ==========================================
+
+router.post(
+  "/",
+  protect,
+  ownerOnly,
+  addInventoryCrop
+);
+
+
+// ==========================================
+// OWNER - GET INVENTORY
+// ==========================================
+
+router.get(
+  "/",
+  protect,
+  ownerOnly,
+  getOwnerInventory
+);
+
+
+// ==========================================
+// OWNER - UPDATE
+// ==========================================
+
+router.put(
+  "/:id",
+  protect,
+  ownerOnly,
+  updateInventoryCrop
+);
+
+
+// ==========================================
+// OWNER - DELETE
+// ==========================================
+
+router.delete(
+  "/:id",
+  protect,
+  ownerOnly,
+  deleteInventoryCrop
+);
 
 
 export default router;

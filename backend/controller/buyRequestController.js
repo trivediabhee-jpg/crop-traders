@@ -15,6 +15,7 @@ export const createBuyRequest = async (req, res) => {
       price,
       location,
       date,
+      
       notes,
     } = req.body;
 
@@ -30,6 +31,7 @@ export const createBuyRequest = async (req, res) => {
       location,
       date,
       notes,
+      
       status: "Pending",
     });
 
