@@ -31,7 +31,7 @@ export const createBuyRequest = async (req, res) => {
       location,
       date,
       notes,
-      
+      owner,
       status: "Pending",
     });
 

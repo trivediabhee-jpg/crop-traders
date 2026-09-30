@@ -143,3 +143,26 @@ export const deleteInventoryCrop = async (req, res) => {
   }
 };
 
+// 🛒 Get all available crops for clients
+export const getAvailableInventory = async (req, res) => {
+  try {
+    const crops = await OwnerInventory.find({
+      available: true,
+      quantity: { $gt: 0 },
+    })
+      .populate("owner", "fullname email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      crops,
+    });
+  } catch (error) {
+    console.log("Get Available Inventory Error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
