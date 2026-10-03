@@ -15,7 +15,7 @@ export const createBuyRequest = async (req, res) => {
       price,
       location,
       date,
-      
+      owner,
       notes,
     } = req.body;
 
