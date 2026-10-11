@@ -148,7 +148,7 @@ export const getAvailableInventory = async (req, res) => {
   try {
     const crops = await OwnerInventory.find({
       available: true,
-      quantity: { $gt: 0 },
+      quantity: { $gt: 0 },1                                                                                                                                                                                                                                                                                                                                                            
     })
       .populate("owner", "fullname email phone")
       .sort({ createdAt: -1 });
