@@ -20,11 +20,7 @@ const router = express.Router();
 // CLIENT - AVAILABLE CROPS
 // ==========================================
 
-router.get(
-  "/available",
-  protect,
-  getAvailableInventory
-);
+
 
 
 // ==========================================
